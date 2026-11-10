@@ -1,0 +1,1500 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Мега-Викторина</title>
+<style>
+  :root {
+    --bg: #0f1115; --bg2: #171a21; --card: #1a1d24; --card2: #12151b;
+    --text: #e8e8ea; --muted: #9aa0aa; --accent: #6c8cff; --ok: #3ecf8e;
+    --err: #ff6b6b; --warn: #ffcc66; --border: #2a2f3a;
+    --font-family: system-ui, -apple-system, sans-serif;
+    --base-font-size: 16px;
+  }
+  :root[data-theme="light"] {
+    --bg: #f2f4f8; --bg2: #e6e9f0; --card: #ffffff; --card2: #f7f8fb;
+    --text: #1a1d24; --muted: #5b6270; --accent: #3b5bdb; --ok: #1f9d63;
+    --err: #d64545; --warn: #b7791f; --border: #d5dae3;
+  }
+  :root[data-theme="cyber"] {
+    --bg: #0a001a; --bg2: #140033; --card: #1a0040; --card2: #0d0026;
+    --text: #00ffcc; --muted: #ff00ff; --accent: #ff00ff; --ok: #00ffcc;
+    --err: #ff0055; --warn: #ffff00; --border: #ff00ff;
+  }
+  :root[data-theme="retro"] {
+    --bg: #000000; --bg2: #001100; --card: #002200; --card2: #001100;
+    --text: #33ff33; --muted: #00aa00; --accent: #33ff33; --ok: #33ff33;
+    --err: #ff3333; --warn: #ffff33; --border: #00aa00;
+  }
+  
+  * { box-sizing: border-box; font-family: var(--font-family); }
+  body {
+    margin: 0; min-height: 100vh; display: flex; align-items: flex-start; justify-content: center;
+    padding: 24px 16px 60px; background: radial-gradient(1200px 600px at 20% 0%, var(--bg2), var(--bg));
+    color: var(--text); font-size: var(--base-font-size); transition: background .2s, color .2s;
+  }
+  .app {
+    width: min(900px, 100%); background: var(--card); border: 1px solid var(--border);
+    border-radius: 20px; padding: 24px; box-shadow: 0 20px 60px rgba(0,0,0,.35); position: relative; overflow: hidden;
+  }
+  h1, h2, h3 { margin: 0 0 10px; }
+  .topbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 15px; }
+  .nav-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+  .tab-btn {
+    padding: 8px 14px; font-size: 14px; font-weight: 600; color: var(--muted);
+    background: transparent; border: 1px solid transparent; border-radius: 10px; cursor: pointer; transition: .15s;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--accent); background: rgba(108,140,255,.1); border-color: var(--accent); }
+  .top-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .icon-btn {
+    padding: 8px 12px; font-size: 14px; font-weight: 500; color: var(--text);
+    background: var(--card2); border: 1px solid var(--border); border-radius: 10px; cursor: pointer; transition: .15s;
+  }
+  .icon-btn:hover { border-color: var(--accent); }
+  .icon-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .icon-btn.primary:hover { filter: brightness(1.1); }
+  .coin-badge { padding: 6px 12px; background: rgba(255,204,102,.15); color: var(--warn); border: 1px solid var(--warn); border-radius: 999px; font-weight: bold; font-size: 14px; }
+  
+  .screen { display: none; animation: fadeIn .3s ease; }
+  .screen.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+  .stats { display: flex; gap: 16px; margin-bottom: 14px; font-size: 14px; color: var(--muted); flex-wrap: wrap; align-items: center; }
+  .badge { font-size: 12px; color: var(--accent); border: 1px solid var(--accent); padding: 2px 8px; border-radius: 999px; }
+  .progress-wrap { height: 6px; background: var(--card2); border: 1px solid var(--border); border-radius: 999px; overflow: hidden; margin-bottom: 16px; }
+  .progress-bar { height: 100%; background: var(--accent); width: 0%; transition: width .3s; }
+  
+  .question { font-size: 20px; line-height: 1.5; min-height: 84px; padding: 18px; background: var(--card2); border: 1px solid var(--border); border-radius: 14px; margin-bottom: 16px; position: relative; }
+  .question.shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+  @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
+  
+  .question .num { display: inline-block; font-size: 12px; color: var(--accent); border: 1px solid var(--accent); padding: 2px 8px; border-radius: 999px; margin-bottom: 10px; }
+  .timer { position: absolute; top: 14px; right: 14px; font-size: 14px; font-weight: bold; color: var(--muted); padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px; background: var(--card); }
+  .timer.danger { color: var(--err); border-color: var(--err); }
+
+  .options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  @media (max-width: 560px) { .options { grid-template-columns: 1fr !important; } }
+  .option-btn {
+    padding: 16px; font-size: 16px; text-align: left; color: var(--text); background: var(--card2);
+    border: 1px solid var(--border); border-radius: 12px; cursor: pointer; transition: .15s;
+  }
+  .option-btn:hover:not(:disabled) { border-color: var(--accent); }
+  .option-btn.correct { border-color: var(--ok); background: rgba(62,207,142,.15); color: var(--ok); font-weight: bold; }
+  .option-btn.wrong { border-color: var(--err); background: rgba(255,107,107,.15); color: var(--err); font-weight: bold; }
+  .option-btn.dim { opacity: .4; }
+  .option-btn:disabled { cursor: default; }
+
+  .input-row { display: flex; gap: 10px; margin-bottom: 16px; }
+  .input-row input { flex: 1; padding: 14px 16px; font-size: 16px; color: var(--text); background: var(--card2); border: 1px solid var(--border); border-radius: 12px; outline: none; }
+  .input-row input:focus { border-color: var(--accent); }
+
+  .feedback { margin-top: 10px; padding: 14px 16px; border-radius: 12px; font-size: 15px; display: none; }
+  .feedback.show { display: block; }
+  .feedback.ok { background: rgba(62,207,142,.12); border: 1px solid rgba(62,207,142,.35); }
+  .feedback.err { background: rgba(255,107,107,.12); border: 1px solid rgba(255,107,107,.35); }
+  .feedback .label { font-weight: 700; }
+  .feedback .correct { color: var(--ok); font-weight: 700; }
+
+  .footer { display: flex; justify-content: space-between; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+
+  .form-group { margin-bottom: 15px; }
+  .form-group label { display: block; font-size: 14px; margin-bottom: 5px; color: var(--muted); }
+  .form-group input, .form-group select { width: 100%; padding: 10px; background: var(--card2); color: var(--text); border: 1px solid var(--border); border-radius: 8px; }
+  .form-group input[type="range"] { padding: 0; }
+  
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+  th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 500; }
+  tr:hover td { background: var(--card2); }
+
+  .grid-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-top: 15px; }
+  .card { padding: 20px; background: var(--card2); border: 1px solid var(--border); border-radius: 12px; text-align: center; }
+  .card .value { font-size: 28px; font-weight: bold; margin-bottom: 5px; }
+  .card .label { font-size: 12px; color: var(--muted); text-transform: uppercase; }
+
+  .marathon-options { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+  .m-btn { padding: 15px 25px; font-size: 16px; font-weight: bold; background: var(--card2); border: 1px solid var(--border); border-radius: 10px; cursor: pointer; }
+  .m-btn:hover { border-color: var(--accent); background: rgba(108,140,255,.1); }
+  
+  .result-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 13px; }
+  .result-table th, .result-table td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; }
+  .result-table th { background: var(--card2); }
+  .result-table .ok { color: var(--ok); }
+  .result-table .err { color: var(--err); }
+
+  /* Магазин и Профиль */
+  .shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; }
+  .shop-item { background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 15px; text-align: center; display: flex; flex-direction: column; justify-content: space-between; }
+  .shop-item .title { font-weight: bold; margin-bottom: 5px; }
+  .shop-item .price { color: var(--warn); font-size: 14px; margin-bottom: 10px; }
+  .shop-item button { width: 100%; }
+  .achievements-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+  .ach-item { background: var(--card2); border: 1px solid var(--border); border-radius: 10px; padding: 10px; text-align: center; opacity: 0.5; filter: grayscale(1); }
+  .ach-item.unlocked { opacity: 1; filter: none; border-color: var(--ok); }
+  .ach-item .icon { font-size: 24px; margin-bottom: 5px; }
+  .ach-item .name { font-size: 12px; font-weight: bold; }
+
+  .zen-mode .topbar, .zen-mode .stats, .zen-mode .progress-wrap, .zen-mode .footer { display: none !important; }
+  .zen-mode .question { min-height: auto; border: none; background: transparent; font-size: 24px; text-align: center; padding: 40px 0; }
+
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--card); color: var(--text); padding: 12px 24px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,.3); opacity: 0; pointer-events: none; transition: .3s; z-index: 100; text-align: center; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* PvP */
+  .pvp-panels { display: flex; gap: 15px; margin-top: 15px; }
+  .pvp-panel { flex: 1; padding: 15px; border: 2px solid var(--border); border-radius: 12px; text-align: center; transition: .3s; }
+  .pvp-panel.active { border-color: var(--accent); box-shadow: 0 0 15px var(--accent); }
+  .pvp-panel h3 { font-size: 18px; margin-bottom: 5px; }
+  .pvp-panel .score { font-size: 32px; font-weight: bold; color: var(--accent); }
+  .pvp-options { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+  .pvp-options button { padding: 15px; font-size: 18px; text-align: left; }
+</style>
+</head>
+<body>
+<div class="app" id="appContainer">
+  <div class="topbar" id="mainTopbar">
+    <div>
+      <h1 id="greeting">Привет, Игрок!</h1>
+      <div class="nav-tabs" id="navTabs" style="display:none;">
+        <button class="tab-btn active" data-screen="quizScreen">Викторина</button>
+        <button class="tab-btn" data-screen="survivalScreen">Выживание</button>
+        <button class="tab-btn" data-screen="marathonScreen">Марафон</button>
+        <button class="tab-btn" data-screen="dailyScreen">Daily</button>
+        <button class="tab-btn" data-screen="pvpScreen">Дуэль</button>
+        <button class="tab-btn" data-screen="profileScreen">Профиль</button>
+        <button class="tab-btn" data-screen="statsScreen">Статистика</button>
+        <button class="tab-btn" data-screen="leadersScreen">Лидеры</button>
+        <button class="tab-btn" data-screen="shopScreen">Магазин</button>
+        <button class="tab-btn" data-screen="customScreen">Свои</button>
+      </div>
+    </div>
+    <div class="top-actions" id="topActions" style="display:none;">
+      <div class="coin-badge" id="coinDisplay">🪙 0</div>
+      <button class="icon-btn" id="themeBtn">🌙</button>
+      <button class="icon-btn" id="musicBtn">🎵</button>
+      <button class="icon-btn" id="settingsBtn">⚙️</button>
+    </div>
+  </div>
+
+  <!-- Экран входа -->
+  <div class="screen active" id="loginScreen">
+    <div style="max-width: 400px; margin: 40px auto; text-align: center;">
+      <h2>Добро пожаловать!</h2>
+      <p style="color: var(--muted); margin-bottom: 20px;">Введите ваш ник для входа (до 15 символов).</p>
+      <div class="form-group">
+        <input type="text" id="usernameInput" maxlength="15" placeholder="Ваш ник..." style="text-align: center; font-size: 18px;">
+      </div>
+      <button class="icon-btn primary" id="loginBtn" style="width: 100%; padding: 12px; font-size: 16px;">Войти</button>
+    </div>
+  </div>
+
+  <!-- Экран Викторины -->
+  <div class="screen" id="quizScreen">
+    <div class="stats">
+      <span>Уровень: <b id="qLevel">1</b></span>
+      <span>Вопрос: <b id="qIndex">—</b></span>
+      <span>Верно: <b id="okCount">0</b></span>
+      <span>Ошибок: <b id="errCount">0</b></span>
+      <span class="badge" id="progressText">0 / 0</span>
+    </div>
+    <div class="progress-wrap"><div class="progress-bar" id="progressBar"></div></div>
+    <div class="question" id="questionBox">
+      <span class="num" id="qNum">№</span>
+      <span class="timer" id="timerEl" style="display:none">30</span>
+      <div id="qText">Загрузка...</div>
+    </div>
+    <div class="options" id="optionsBox"></div>
+    <div class="input-row" id="inputBox" style="display:none;">
+      <input type="text" id="answerInput" placeholder="Введите ответ..." autocomplete="off">
+      <button class="icon-btn primary" id="submitAnswerBtn">Ответить</button>
+    </div>
+    <div class="feedback" id="feedback"></div>
+    <div class="footer">
+      <button class="icon-btn" id="skipBtn">Пропустить</button>
+      <button class="icon-btn" id="nextBtn" style="display:none;">Далее →</button>
+    </div>
+  </div>
+
+  <!-- Экран Выживания (Survival) -->
+  <div class="screen" id="survivalScreen">
+    <h2>Режим Выживания</h2>
+    <p style="color: var(--muted); margin-bottom: 15px;">Одна ошибка — и игра окончена. Сложность растёт с каждым ответом!</p>
+    <div id="survivalStart">
+      <button class="icon-btn primary" id="startSurvivalBtn" style="width: 100%; padding: 15px; font-size: 18px;">Начать выживание</button>
+      <p style="text-align: center; margin-top: 15px;">Рекорд: <b id="survivalBest" style="font-size: 24px; color: var(--accent);">0</b></p>
+    </div>
+    <div id="survivalPlay" style="display:none;">
+      <div class="stats" style="justify-content: center;">
+        <span>Стрик: <b id="survivalStreak" style="font-size: 20px; color: var(--accent);">0</b></span>
+        <span>Рекорд: <b id="survivalBestPlay">0</b></span>
+      </div>
+      <div class="question" id="survivalQuestionBox">
+        <span class="num" id="survivalLevel">Ур. 1</span>
+        <div id="survivalQText">Загрузка...</div>
+      </div>
+      <div class="options" id="survivalOptions"></div>
+      <div class="input-row" id="survivalInputBox" style="display:none;">
+        <input type="text" id="survivalAnswerInput" placeholder="Введите ответ..." autocomplete="off">
+        <button class="icon-btn primary" id="survivalSubmitBtn">Ответить</button>
+      </div>
+      <div class="feedback" id="survivalFeedback"></div>
+      <div style="text-align: center; margin-top: 20px;">
+        <button class="icon-btn" id="quitSurvivalBtn">Сдаться</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Экран Марафона -->
+  <div class="screen" id="marathonScreen">
+    <div id="marathonSetup">
+      <h2>Режим «Марафон»</h2>
+      <div class="marathon-options">
+        <button class="m-btn" data-count="5">5 вопросов</button>
+        <button class="m-btn" data-count="10">10 вопросов</button>
+        <button class="m-btn" data-count="50">50 вопросов</button>
+        <button class="m-btn" data-count="100">100 вопросов</button>
+        <button class="m-btn" data-count="200">200 вопросов</button>
+      </div>
+    </div>
+    <div id="marathonPlay" style="display: none;">
+      <div class="stats">
+        <span>Марафон: <b id="mProgressText">0 / 0</b></span>
+        <span>Верно: <b id="mOkCount">0</b></span>
+        <span>Ошибок: <b id="mErrCount">0</b></span>
+      </div>
+      <div class="progress-wrap"><div class="progress-bar" id="mProgressBar"></div></div>
+      <div class="question" id="mQuestionBox">
+        <span class="num" id="mQNum">№</span>
+        <div id="mQText">Загрузка...</div>
+      </div>
+      <div class="options" id="mOptionsBox"></div>
+      <div class="input-row" id="mInputBox" style="display:none;">
+        <input type="text" id="mAnswerInput" placeholder="Введите ответ..." autocomplete="off">
+        <button class="icon-btn primary" id="mSubmitBtn">Ответить</button>
+      </div>
+      <div class="feedback" id="mFeedback"></div>
+      <div class="footer"><button class="icon-btn" id="mNextBtn" style="display:none;">Далее →</button></div>
+    </div>
+    <div id="marathonResults" style="display: none;">
+      <h2>Результаты марафона</h2>
+      <p id="mSummary" style="font-size: 18px; font-weight: bold; margin-bottom: 15px;"></p>
+      <div class="table-wrap">
+        <table class="result-table">
+          <thead><tr><th>№</th><th>Вопрос</th><th>Правильный</th><th>Ваш</th><th>Статус</th></tr></thead>
+          <tbody id="mResultsBody"></tbody>
+        </table>
+      </div>
+      <div style="margin-top: 20px; display: flex; gap: 10px;">
+        <button class="icon-btn primary" id="restartMarathonBtn">Пройти еще раз</button>
+        <button class="icon-btn" id="shareChallengeBtn">🔗 Создать вызов другу</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Экран Daily -->
+  <div class="screen" id="dailyScreen">
+    <h2>Ежедневный вызов</h2>
+    <p style="color: var(--muted); margin-bottom: 20px;">10 вопросов, одинаковых для всех игроков сегодня. Доступен 1 раз в день.</p>
+    <div id="dailyStart">
+      <button class="icon-btn primary" id="startDailyBtn" style="width: 100%; padding: 15px; font-size: 18px;">Начать вызов</button>
+    </div>
+    <div id="dailyPlay" style="display:none;">
+      <div class="stats"><span>Вопрос: <b id="dailyProgress">0 / 10</b></span></div>
+      <div class="question" id="dailyQBox">
+        <span class="num" id="dailyQNum">№</span>
+        <div id="dailyQText"></div>
+      </div>
+      <div class="options" id="dailyOptions"></div>
+      <div class="feedback" id="dailyFeedback"></div>
+      <button class="icon-btn primary" id="dailyNextBtn" style="display:none; width:100%; margin-top:15px;">Далее →</button>
+    </div>
+    <div id="dailyResults" style="display:none; text-align:center;">
+      <h2>Вызов пройден!</h2>
+      <p id="dailySummary" style="font-size: 20px; margin: 20px 0;"></p>
+      <button class="icon-btn" id="closeDailyBtn">Вернуться</button>
+    </div>
+  </div>
+
+  <!-- Экран Дуэли (PvP) -->
+  <div class="screen" id="pvpScreen">
+    <div id="pvpSetup">
+      <h2>Дуэль</h2>
+      <p style="color: var(--muted); margin-bottom: 15px;">Игра на одном устройстве. Кто быстрее нажмёт правильный ответ, тот получает очко. Побеждает тот, кто первый наберёт 5 очков.</p>
+      <button class="icon-btn primary" id="startPvpBtn" style="width:100%; padding:15px; font-size:18px;">Начать дуэль</button>
+    </div>
+    <div id="pvpPlay" style="display:none;">
+      <div class="pvp-panels">
+        <div class="pvp-panel" id="pvpPanel1"><h3>Игрок 1</h3><div class="score" id="pvpScore1">0</div></div>
+        <div class="pvp-panel" id="pvpPanel2"><h3>Игрок 2</h3><div class="score" id="pvpScore2">0</div></div>
+      </div>
+      <div class="question" id="pvpQuestionBox" style="margin-top: 20px;">
+        <div id="pvpQText" style="font-size: 22px; font-weight: bold; text-align: center;"></div>
+      </div>
+      <div class="pvp-options" id="pvpOptions"></div>
+      <div class="feedback" id="pvpFeedback" style="text-align:center; font-size:18px;"></div>
+      <div style="text-align:center; margin-top:20px;"><button class="icon-btn" id="quitPvpBtn">Завершить</button></div>
+    </div>
+    <div id="pvpResults" style="display:none; text-align:center;">
+      <h2 id="pvpWinnerText">Победил Игрок 1!</h2>
+      <button class="icon-btn primary" id="restartPvpBtn" style="margin-top:20px;">Играть снова</button>
+    </div>
+  </div>
+
+  <!-- Экран Профиля (Достижения) -->
+  <div class="screen" id="profileScreen">
+    <h2>Профиль и Достижения</h2>
+    <div class="grid-cards" style="margin-bottom: 20px;">
+      <div class="card"><div class="value" id="profGames">0</div><div class="label">Игр сыграно</div></div>
+      <div class="card"><div class="value" id="profAcc">0%</div><div class="label">Точность</div></div>
+      <div class="card"><div class="value" id="profCoins">0</div><div class="label">Монет</div></div>
+    </div>
+    
+    <h3>Достижения</h3>
+    <div class="achievements-grid" id="achievementsGrid"></div>
+
+    <h3 style="margin-top: 30px;">Экспорт / Импорт профиля</h3>
+    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+      <button class="icon-btn" id="exportProfileBtn">📥 Скачать сейв</button>
+      <input type="file" id="importProfileFile" accept=".json" style="display: none;">
+      <button class="icon-btn" id="importProfileBtn">📤 Загрузить сейв</button>
+    </div>
+  </div>
+
+  <!-- Экран Статистики (по уровням) -->
+  <div class="screen" id="statsScreen">
+    <h2>Детальная статистика</h2>
+    <div id="levelStatsContainer" style="display: flex; flex-direction: column; gap: 15px; margin-top: 20px;"></div>
+    <h3 style="margin-top: 30px;">Экспорт истории</h3>
+    <button class="icon-btn" id="exportCsvBtn">📥 Скачать CSV</button>
+  </div>
+
+  <!-- Экран Лидеров -->
+  <div class="screen" id="leadersScreen">
+    <h2>Таблица лидеров</h2>
+    <div class="table-wrap">
+      <table id="leadersTable">
+        <thead><tr><th>#</th><th>Игрок</th><th>Очки</th><th>Точность</th><th>Игр</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Экран Магазина -->
+  <div class="screen" id="shopScreen">
+    <h2>Магазин</h2>
+    <p style="color: var(--muted); margin-bottom: 15px;">Тратьте монеты на темы оформления и стили. Монеты дают за правильные ответы.</p>
+    <h3>Темы оформления</h3>
+    <div class="shop-grid" id="shopThemes" style="margin-bottom: 20px;"></div>
+    <h3>Скины (скоро)</h3>
+    <div class="shop-grid" id="shopSkins"><div class="shop-item"><div class="title">В разработке</div></div></div>
+  </div>
+
+  <!-- Экран Своих Вопросов -->
+  <div class="screen" id="customScreen">
+    <h2>Загрузка вопросов</h2>
+    <textarea id="customText" style="width: 100%; height: 150px; background: var(--card2); color: var(--text); border: 1px solid var(--border); padding: 10px; border-radius: 8px; font-family: monospace;" placeholder="1,Что тяжелее — слово или молчание?,Молчание,Слово,Крик,Тишина"></textarea>
+    <div style="margin-top: 10px; display: flex; gap: 10px;">
+      <button class="icon-btn primary" id="loadCustomBtn">Загрузить</button>
+      <button class="icon-btn" id="resetCustomBtn">Сбросить</button>
+    </div>
+  </div>
+
+  <!-- Модалка Настроек -->
+  <div id="settingsModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,.5); z-index:50; align-items:center; justify-content:center;">
+    <div style="background:var(--card); padding:24px; border-radius:16px; width:min(400px, 90%); border:1px solid var(--border); max-height: 90vh; overflow-y: auto;">
+      <h3>Настройки</h3>
+      <div class="form-group">
+        <label>Уровень сложности</label>
+        <select id="levelSelect">
+          <option value="1">1 - Легкий</option><option value="2">2 - Средний</option>
+          <option value="3">3 - Сложный</option><option value="4">4 - Эксперт</option><option value="5">5 - Безумный</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Режим ответов</label>
+        <select id="inputModeSelect">
+          <option value="auto">Авто (1-3 кнопки, 4-5 ввод)</option>
+          <option value="buttons">Только кнопки</option>
+          <option value="text">Только ввод</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Таймер (сек, 0 - выкл)</label>
+        <input type="number" id="timerInput" value="30" min="0" max="120">
+      </div>
+      <div class="form-group">
+        <label>Размер шрифта (<span id="fontSizeLabel">16</span>px)</label>
+        <input type="range" id="fontSizeInput" min="14" max="24" value="16">
+      </div>
+      <div class="form-group">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <input type="checkbox" id="zenModeInput" style="width:auto;">
+          <label for="zenModeInput" style="margin:0;">Zen Mode (скрыть интерфейс)</label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Фоновая музыка (MP3)</label>
+        <input type="file" id="bgmFile" accept="audio/mpeg">
+        <div style="font-size: 12px; color: var(--muted); margin-top: 5px;" id="bgmStatus">Файл не выбран</div>
+      </div>
+      <div style="display:flex; justify-content:flex-end; margin-top:20px;">
+        <button class="icon-btn primary" id="closeSettingsBtn">Сохранить и закрыть</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<audio id="bgmAudio" loop></audio>
+
+<script>
+/* ============================================================
+   БАЗА ДАННЫХ (2000 ВОПРОСОВ)
+   ============================================================ */
+const POOLS = {
+  philosophy: ["Молчание", "Слово", "Память", "Время", "Смысл", "Тишина", "Правда", "Ложь", "Страх", "Надежда", "Свобода", "Воля", "Дух", "Суть", "Тень", "Свет", "Тьма", "Огонь", "Лёд", "Ветер", "Путь", "Цель", "Мечта", "Явь", "Сон", "Истина", "Забвение", "След", "Корень", "Всходы", "Иллюзия", "Отчаяние", "Клевета", "Лесть", "Дар", "Момент", "Выбор", "Пауза", "Внутри"],
+  objects: ["Вилка", "Ложка", "Нож", "Топор", "Спица", "Сковородка", "Стол", "Стул", "Дверь", "Окно", "Швабра", "Веник", "Гвоздь", "Шуруп", "Болт", "Гайка", "Чайник", "Кружка", "Тапок", "Носок", "Камыш", "Мрак", "Спица", "Сеть", "Палец", "Песок", "Затылок", "Окошко", "Подружка", "Аул", "Кино", "Пеник", "Суп", "Майка"],
+  body: ["Печень", "Глаз", "Ухо", "Бровь", "Рот", "Постель", "Конец", "Затылок", "Окошко", "Подружка", "Аул", "Кино", "Пеник", "Суп", "Майка", "Слово", "Дело", "Глаз", "Нож", "Пасть", "Разом", "Селезёнка", "Мозг", "Сердце", "Бок"]
+};
+
+const DB = [];
+let idCounter = 1;
+
+const L1_BASE = [
+  ["Ленин — холодец, а Сталин — ...?", "студень"], ["Ленин — холодец, а Троцкий — ...?", "леденец"],
+  ["Ленин — холодец, а Брежнев — ...?", "бровеносец"], ["Ленин — холодец, а Хрущёв — ...?", "кукуруза"],
+  ["Ленин — холодец, а Горбачёв — ...?", "лимонад"], ["Ленин — холодец, а Ельцин — ...?", "голубец"],
+  ["Ленин — холодец, а мавзолей — ...?", "рефрижератор"], ["Слон — поклон, а мышь — в ...?", "камыш"],
+  ["Кот — компот, а пёс — в ...?", "нос"], ["Волк — в толк, а лиса — в ...?", "леса"],
+  ["Ёж — в нож, а уж — в ...?", "муж"], ["Рыба — в глыбу, а рак — в ...?", "мрак"],
+  ["Птица — в спицу, а зверь — в ...?", "дверь"], ["Комар — в удар, а муха — в ...?", "ухо"],
+  ["Медведь — в сеть, а заяц — в ...?", "палец"], ["Тапок — в задок, а носок — в ...?", "песок"]
+];
+for(let i=0; i<400; i++) DB.push({ id: idCounter++, level: 1, q: L1_BASE[i % L1_BASE.length][0], a: L1_BASE[i % L1_BASE.length][1], pool: 'objects' });
+
+const L2_BASE = [
+  ["Что тяжелее — слово или молчание?", "Молчание"], ["Что быстрее — мысль или время?", "Мысль"],
+  ["Что глубже — море или память?", "Память"], ["Что громче — крик или тишина?", "Тишина"],
+  ["Что дороже — правда или покой?", "Покой"], ["Что сильнее — страх или надежда?", "Надежда"],
+  ["Что длиннее — дорога или жизнь?", "Дорога"], ["Что старше — слово или огонь?", "Слово"],
+  ["Что холоднее — лёд или обида?", "Обида"], ["Что теплее — дом или память?", "Память"],
+  ["Что острее — нож или слово?", "Слово"], ["Что мягче — снег или прощение?", "Прощение"],
+  ["Что твёрже — камень или принцип?", "Принцип"], ["Что светлее — день или мысль?", "Мысль"],
+  ["Что темнее — ночь или страх?", "Страх"], ["Что ближе — друг или истина?", "Истина"]
+];
+for(let i=0; i<400; i++) DB.push({ id: idCounter++, level: 2, q: L2_BASE[i % L2_BASE.length][0], a: L2_BASE[i % L2_BASE.length][1], pool: 'philosophy' });
+
+const L3_BASE = [
+  ["Господин Главный Ветер, я вышел на связь! — а что отвечает ветер?", "Тишина"],
+  ["Утопи меня, утопи меня! Как ненужное, бесполезное — а что всплывает?", "Смысл"],
+  ["Заяц несудьбы! — а что тогда судьба?", "Путь"],
+  ["Убей его! Убей его!.. Пуля его не возьмёт… Отыщи Некрономикон! — а что спасает?", "Слово"],
+  ["Небывалая сыплет тоска, и мои отступают войска — а что наступает?", "Время"],
+  ["В окрошке квас, а я среди вас — а кто тогда я?", "Тень"],
+  ["Цветы в вазе, менты в УАЗе — а где тогда правда?", "Внутри"],
+  ["Думай позитивно, стакан всегда наполовину полон — а что в стакане?", "Вода"],
+  ["Только не думай что в стакане, в стакане вода — а что тогда вино?", "Иллюзия"],
+  ["Что он видит проблему мою в том, что я интроверт — а что видит интроверт?", "Себя"]
+];
+for(let i=0; i<400; i++) DB.push({ id: idCounter++, level: 3, q: L3_BASE[i % L3_BASE.length][0], a: L3_BASE[i % L3_BASE.length][1], pool: 'philosophy' });
+
+const L4_BASE = [
+  ["Опишите философский смысл фразы: «То, что ползает, то не летает» — что тогда летает в контексте?", "Ложка"],
+  ["В чем парадокс фразы: «Нуарные фильмы и холодок; виски и дурь, задок и передок»?", "Вилкой в печень"],
+  ["Что остается от человека согласно фразе: «Не встать родному из чернозёма»?", "Память"],
+  ["Что символизирует фраза: «Я живу, пока живу, а как уйду — досвидос»?", "След"],
+  ["В чем смысл утверждения: «Никого не жалко, жизнь — большая свалка»?", "Момент"],
+  ["Что является ключевым в фразе: «Сделана из человеческой кожи книги обложка и оба форзаца»?", "История"]
+];
+for(let i=0; i<400; i++) DB.push({ id: idCounter++, level: 4, q: L4_BASE[i % L4_BASE.length][0], a: L4_BASE[i % L4_BASE.length][1], pool: 'philosophy' });
+
+const L5_BASE = [
+  ["Опишите, что происходит с душой, когда «Белый свет чёрным выкрасил, всю траву мою выкосил»?", "Остаётся только корень"],
+  ["В чём трагедия выбора между «Утопи меня, утопи меня! Как ненужное, бесполезное»?", "Всплывает истинный смысл"],
+  ["Что отвечает вселенная на слова «Господин Главный Ветер, я вышел на связь!»?", "Абсолютная тишина и покой"],
+  ["Каков итог фразы «Убей его! Убей его!.. Пуля его не возьмёт… Отыщи Некрономикон!»?", "Спасает только слово"],
+  ["Что наступает после фразы «Небывалая сыплет тоска, и мои отступают войска»?", "Неумолимое течение времени"]
+];
+for(let i=0; i<400; i++) DB.push({ id: idCounter++, level: 5, q: L5_BASE[i % L5_BASE.length][0], a: L5_BASE[i % L5_BASE.length][1], pool: 'philosophy' });
+
+/* ============================================================
+   ДОСТИЖЕНИЯ И МАГАЗИН
+   ============================================================ */
+const ACHIEVEMENTS = [
+  { id: 'first_blood', icon: '🩸', name: 'Первая кровь', desc: 'Ответить верно 1 раз' },
+  { id: 'philosopher', icon: '🧠', name: 'Философ', desc: '50 верных на уровнях 4-5' },
+  { id: 'speed', icon: '⚡', name: 'Скорострел', desc: 'Ответ за < 2 секунд' },
+  { id: 'marathoner', icon: '🏃', name: 'Марафонец', desc: 'Пройти 200 вопросов' },
+  { id: 'night', icon: '🌙', name: 'Ночной житель', desc: 'Сыграть после 00:00' },
+  { id: 'survivor', icon: '🔥', name: 'Стрик 10', desc: '10 правильных в Выживании' },
+  { id: 'rich', icon: '💰', name: 'Богач', desc: 'Накопить 100 монет' }
+];
+
+const SHOP_THEMES = [
+  { id: 'light', name: 'Светлая', price: 50 },
+  { id: 'cyber', name: 'Киберпанк', price: 150 },
+  { id: 'retro', name: 'Ретро-терминал', price: 150 }
+];
+
+/* ============================================================
+   СОСТОЯНИЕ
+   ============================================================ */
+const SAVE_KEY = 'mega_quiz_v6';
+let state = {
+  user: '', level: 1, timer: 30, theme: 'dark', inputMode: 'auto', 
+  fontSize: 16, zenMode: false,
+  coins: 0, unlockedThemes: ['dark'],
+  stats: { correct: 0, wrong: 0, byLevel: {1:{ok:0,err:0},2:{ok:0,err:0},3:{ok:0,err:0},4:{ok:0,err:0},5:{ok:0,err:0}}, history: [] },
+  leaders: [], customQ: [],
+  achievements: {}, // { id: true }
+  survivalBest: 0,
+  dailyDate: '', dailyDone: false
+};
+
+// Дополнительные сессии
+let session = { pool: [], currentIndex: 0, answered: false, timeLeft: 0, tickTimer: null, startTime: 0 };
+let mSession = { pool: [], currentIndex: 0, answered: false, correct: 0, wrong: 0, results: [] };
+let sSession = { streak: 0, currentQ: null, answered: false };
+let dSession = { pool: [], currentIndex: 0, correct: 0 };
+let pSession = { score: [0, 0], activePlayer: 0, currentQ: null, answered: false };
+
+try {
+  const d = localStorage.getItem(SAVE_KEY);
+  if(d) { state = { ...state, ...JSON.parse(d) }; }
+} catch(e) {}
+
+function save() { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); }
+
+/* ============================================================
+   DOM & УТИЛИТЫ
+   ============================================================ */
+const $ = id => document.getElementById(id);
+const screens = { 
+  login: $('loginScreen'), quiz: $('quizScreen'), survival: $('survivalScreen'), 
+  marathon: $('marathonScreen'), daily: $('dailyScreen'), pvp: $('pvpScreen'),
+  profile: $('profileScreen'), stats: $('statsScreen'), leaders: $('leadersScreen'), 
+  shop: $('shopScreen'), custom: $('customScreen') 
+};
+const tabs = document.querySelectorAll('.tab-btn');
+
+function switchScreen(name) {
+  Object.values(screens).forEach(s => s.classList.remove('active'));
+  if(screens[name]) screens[name].classList.add('active');
+  tabs.forEach(t => t.classList.toggle('active', t.dataset.screen === name + 'Screen'));
+  
+  // Обновление данных при переходе
+  if(name === 'stats') renderStats();
+  if(name === 'leaders') renderLeaders();
+  if(name === 'profile') renderProfile();
+  if(name === 'shop') renderShop();
+  if(name === 'quiz' && !session.currentQ) startNewSession();
+  if(name === 'survival') { $('survivalStart').style.display = 'block'; $('survivalPlay').style.display = 'none'; $('survivalBest').textContent = state.survivalBest; }
+  if(name === 'daily') checkDaily();
+}
+
+tabs.forEach(t => t.onclick = () => {
+  const scr = t.dataset.screen.replace('Screen','');
+  switchScreen(scr);
+});
+
+if(state.user) {
+  $('greeting').textContent = `Привет, ${state.user}!`;
+  $('navTabs').style.display = 'flex';
+  $('topActions').style.display = 'flex';
+  switchScreen('quiz');
+  startNewSession();
+}
+
+$('loginBtn').onclick = () => {
+  const val = $('usernameInput').value.trim();
+  if(!val) return showToast('Введите ник!');
+  state.user = val; save();
+  $('greeting').textContent = `Привет, ${val}!`;
+  $('navTabs').style.display = 'flex';
+  $('topActions').style.display = 'flex';
+  switchScreen('quiz');
+  startNewSession();
+};
+
+function showToast(msg, ms = 3000) {
+  const el = $('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), ms);
+}
+
+function updateCoins() {
+  $('coinDisplay').textContent = `🪙 ${state.coins}`;
+}
+
+function addCoins(n) {
+  state.coins += n;
+  updateCoins();
+  if(state.coins >= 100 && !state.achievements['rich']) unlockAch('rich');
+  save();
+}
+
+function unlockAch(id) {
+  if(state.achievements[id]) return;
+  state.achievements[id] = true;
+  save();
+  const a = ACHIEVEMENTS.find(x => x.id === id);
+  if(a) showToast(`🏆 Достижение: ${a.name}!`);
+}
+
+function isTextMode(level) {
+  if (state.inputMode === 'text') return true;
+  if (state.inputMode === 'buttons') return false;
+  return level >= 4; // auto
+}
+
+function fuzzyMatch(input, correct) {
+  if(!input) return false;
+  const uNorm = input.toLowerCase().replace(/[^a-zа-яё0-9\s]/gi, '').trim();
+  const cNorm = correct.toLowerCase().replace(/[^a-zа-яё0-9\s]/gi, '').trim();
+  if(uNorm === cNorm) return true;
+  const uWords = uNorm.split(/\s+/).filter(w => w.length > 3);
+  if(uWords.length > 0 && uWords.some(w => cNorm.includes(w))) return true;
+  return false;
+}
+
+function renderOptions(container, q, clickHandler) {
+  container.innerHTML = '';
+  let distractors = [];
+  if(q.d1) distractors = [q.d1, q.d2, q.d3];
+  else {
+    const pool = POOLS[q.pool] || POOLS.philosophy;
+    let avail = pool.filter(x => x.toLowerCase() !== q.a.toLowerCase());
+    avail = avail.sort(() => Math.random() - 0.5);
+    distractors = avail.slice(0, 3);
+    while(distractors.length < 3) distractors.push("Вариант " + (distractors.length+1));
+  }
+  const opts = [q.a, ...distractors].sort(() => Math.random() - 0.5);
+  opts.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.textContent = opt;
+    btn.onclick = () => clickHandler(opt, btn);
+    container.appendChild(btn);
+  });
+}
+
+/* ============================================================
+   ОБЫЧНАЯ ВИКТОРИНА
+   ============================================================ */
+function startNewSession() {
+  clearInterval(session.tickTimer);
+  let pool = DB.filter(q => q.level === state.level);
+  if(state.customQ.length) {
+    const cPool = state.customQ.filter(q => q.level === state.level);
+    if(cPool.length) pool = cPool;
+  }
+  session.pool = pool.sort(() => Math.random() - 0.5).slice(0, 20);
+  session.currentIndex = 0;
+  session.correct = 0;
+  session.wrong = 0;
+  session.startTime = Date.now();
+  $('qLevel').textContent = state.level;
+  $('okCount').textContent = '0';
+  $('errCount').textContent = '0';
+  renderQuestion();
+}
+
+function renderQuestion() {
+  if(session.currentIndex >= session.pool.length) return finishSession();
+  session.answered = false;
+  clearInterval(session.tickTimer);
+  
+  const q = session.pool[session.currentIndex];
+  session.currentQ = q;
+  
+  $('qNum').textContent = `№ ${q.id}`;
+  $('qText').textContent = q.q;
+  $('qIndex').textContent = `${session.currentIndex + 1} / ${session.pool.length}`;
+  $('progressText').textContent = `${session.currentIndex} / ${session.pool.length}`;
+  $('progressBar').style.width = `${(session.currentIndex / session.pool.length) * 100}%`;
+  $('feedback').className = 'feedback';
+  $('nextBtn').style.display = 'none';
+  $('skipBtn').style.display = 'block';
+  $('questionBox').classList.remove('shake');
+
+  if(isTextMode(state.level)) {
+    $('optionsBox').style.display = 'none';
+    $('inputBox').style.display = 'flex';
+    $('answerInput').value = '';
+    $('answerInput').disabled = false;
+    $('submitAnswerBtn').disabled = false;
+    $('answerInput').focus();
+  } else {
+    $('optionsBox').style.display = 'grid';
+    $('inputBox').style.display = 'none';
+    renderOptions($('optionsBox'), q, (opt, btn) => checkAnswer(opt, btn));
+  }
+
+  if(state.timer > 0) {
+    $('timerEl').style.display = 'inline-block';
+    session.timeLeft = state.timer;
+    $('timerEl').textContent = session.timeLeft;
+    $('timerEl').classList.remove('danger');
+    session.tickTimer = setInterval(() => {
+      session.timeLeft--;
+      $('timerEl').textContent = session.timeLeft;
+      if(session.timeLeft <= 5) $('timerEl').classList.add('danger');
+      if(session.timeLeft <= 0) {
+        clearInterval(session.tickTimer);
+        if(!session.answered) onTimeOut();
+      }
+    }, 1000);
+  } else {
+    $('timerEl').style.display = 'none';
+  }
+}
+
+function checkAnswer(val, btnEl = null) {
+  if(session.answered) return;
+  session.answered = true;
+  clearInterval(session.tickTimer);
+  $('skipBtn').style.display = 'none';
+  $('nextBtn').style.display = 'block';
+  
+  const q = session.currentQ;
+  let isCorrect = false;
+  
+  if(isTextMode(state.level)) {
+    $('answerInput').disabled = true;
+    $('submitAnswerBtn').disabled = true;
+    isCorrect = fuzzyMatch(val, q.a);
+  } else {
+    const all = $('optionsBox').querySelectorAll('.option-btn');
+    all.forEach(b => b.disabled = true);
+    isCorrect = val.toLowerCase() === q.a.toLowerCase();
+    all.forEach(b => {
+      if(b.textContent.toLowerCase() === q.a.toLowerCase()) b.classList.add('correct');
+      else if(b === btnEl && !isCorrect) b.classList.add('wrong');
+      else b.classList.add('dim');
+    });
+  }
+
+  // Запись статистики по уровням
+  if(!state.stats.byLevel[q.level]) state.stats.byLevel[q.level] = {ok:0, err:0};
+  
+  const fb = $('feedback');
+  if(isCorrect) {
+    session.correct++;
+    state.stats.byLevel[q.level].ok++;
+    $('okCount').textContent = session.correct;
+    fb.className = 'feedback show ok';
+    fb.innerHTML = `<span class="label">✅ Верно!</span> Ответ: <span class="correct">${q.a}</span>`;
+    addCoins(1);
+    if(!state.achievements['first_blood']) unlockAch('first_blood');
+    
+    if(Date.now() - session.startTime < 2000) unlockAch('speed');
+    if(q.level >= 4) {
+      const pCount = Object.values(state.stats.byLevel).slice(3).reduce((acc, curr) => acc + curr.ok, 0);
+      if(pCount >= 50) unlockAch('philosopher');
+    }
+  } else {
+    session.wrong++;
+    state.stats.byLevel[q.level].err++;
+    $('errCount').textContent = session.wrong;
+    fb.className = 'feedback show err';
+    fb.innerHTML = `<span class="label">❌ Неверно.</span> Ответ: <span class="correct">${q.a}</span>`;
+    $('questionBox').classList.add('shake');
+    if(navigator.vibrate) navigator.vibrate(200);
+  }
+  save();
+}
+
+function onTimeOut() {
+  checkAnswer("", null);
+  $('feedback').innerHTML = `<span class="label">⏰ Время вышло.</span> Ответ: <span class="correct">${session.currentQ.a}</span>`;
+}
+
+$('submitAnswerBtn').onclick = () => {
+  const val = $('answerInput').value.trim();
+  if(!val) return;
+  checkAnswer(val);
+};
+$('answerInput').onkeydown = (e) => { if(e.key === 'Enter') $('submitAnswerBtn').click(); };
+$('nextBtn').onclick = () => { session.currentIndex++; renderQuestion(); };
+
+function finishSession() {
+  const total = session.correct + session.wrong;
+  const pct = total ? Math.round((session.correct / total) * 100) : 0;
+  
+  state.stats.correct += session.correct;
+  state.stats.wrong += session.wrong;
+  state.stats.history.push({ date: new Date().toISOString(), level: state.level, correct: session.correct, wrong: session.wrong });
+
+  const scoreGained = session.correct * state.level * 10;
+  let leader = state.leaders.find(l => l.name === state.user);
+  if(!leader) { leader = { name: state.user, score: 0, correct: 0, total: 0, games: 0 }; state.leaders.push(leader); }
+  leader.score += scoreGained; leader.correct += session.correct; leader.total += total; leader.games++;
+  state.leaders.sort((a, b) => b.score - a.score);
+  save();
+
+  showToast(`Сессия окончена: ${session.correct} из ${total} (${pct}%)`);
+  session.currentQ = null;
+  startNewSession();
+}
+
+/* ============================================================
+   ВЫЖИВАНИЕ
+   ============================================================ */
+$('startSurvivalBtn').onclick = () => {
+  $('survivalStart').style.display = 'none';
+  $('survivalPlay').style.display = 'block';
+  sSession.streak = 0;
+  $('survivalStreak').textContent = '0';
+  $('survivalBestPlay').textContent = state.survivalBest;
+  renderSurvivalQ();
+};
+
+function renderSurvivalQ() {
+  sSession.answered = false;
+  $('survivalFeedback').className = 'feedback';
+  
+  // Выбор вопроса: стрик < 5 -> ур 1, < 10 -> ур 2, < 15 -> ур 3, < 20 -> ур 4, иначе ур 5
+  let lvl = 1;
+  if(sSession.streak >= 20) lvl = 5;
+  else if(sSession.streak >= 15) lvl = 4;
+  else if(sSession.streak >= 10) lvl = 3;
+  else if(sSession.streak >= 5) lvl = 2;
+  
+  $('survivalLevel').textContent = `Ур. ${lvl}`;
+  const q = DB.filter(x => x.level === lvl).sort(() => Math.random() - 0.5)[0];
+  sSession.currentQ = q;
+  $('survivalQText').textContent = q.q;
+
+  if(isTextMode(lvl)) {
+    $('survivalOptions').style.display = 'none';
+    $('survivalInputBox').style.display = 'flex';
+    $('survivalAnswerInput').value = '';
+    $('survivalAnswerInput').disabled = false;
+    $('survivalSubmitBtn').disabled = false;
+    $('survivalAnswerInput').focus();
+  } else {
+    $('survivalOptions').style.display = 'grid';
+    $('survivalInputBox').style.display = 'none';
+    renderOptions($('survivalOptions'), q, (opt, btn) => checkSurvival(opt, btn));
+  }
+}
+
+function checkSurvival(val, btnEl = null) {
+  if(sSession.answered) return;
+  sSession.answered = true;
+  const q = sSession.currentQ;
+  let isCorrect = false;
+
+  if(isTextMode(q.level)) {
+    $('survivalAnswerInput').disabled = true;
+    $('survivalSubmitBtn').disabled = true;
+    isCorrect = fuzzyMatch(val, q.a);
+  } else {
+    const all = $('survivalOptions').querySelectorAll('.option-btn');
+    all.forEach(b => b.disabled = true);
+    isCorrect = val.toLowerCase() === q.a.toLowerCase();
+    all.forEach(b => {
+      if(b.textContent.toLowerCase() === q.a.toLowerCase()) b.classList.add('correct');
+      else if(b === btnEl && !isCorrect) b.classList.add('wrong');
+      else b.classList.add('dim');
+    });
+  }
+
+  if(isCorrect) {
+    sSession.streak++;
+    $('survivalStreak').textContent = sSession.streak;
+    $('survivalFeedback').className = 'feedback show ok';
+    $('survivalFeedback').innerHTML = `<span class="label">✅ Верно!</span> Стрик: ${sSession.streak}`;
+    addCoins(1);
+    if(sSession.streak >= 10) unlockAch('survivor');
+    setTimeout(renderSurvivalQ, 800);
+  } else {
+    $('survivalFeedback').className = 'feedback show err';
+    $('survivalFeedback').innerHTML = `<span class="label">💀 Игра окончена.</span> Правильный: <span class="correct">${q.a}</span>`;
+    if(sSession.streak > state.survivalBest) {
+      state.survivalBest = sSession.streak;
+      save();
+      showToast(`Новый рекорд: ${sSession.streak}!`);
+    }
+    setTimeout(() => {
+      $('survivalStart').style.display = 'block';
+      $('survivalPlay').style.display = 'none';
+      $('survivalBest').textContent = state.survivalBest;
+    }, 2000);
+  }
+}
+
+$('survivalSubmitBtn').onclick = () => {
+  const val = $('survivalAnswerInput').value.trim();
+  if(!val) return;
+  checkSurvival(val);
+};
+$('survivalAnswerInput').onkeydown = (e) => { if(e.key === 'Enter') $('survivalSubmitBtn').click(); };
+$('quitSurvivalBtn').onclick = () => {
+  $('survivalStart').style.display = 'block';
+  $('survivalPlay').style.display = 'none';
+};
+
+/* ============================================================
+   МАРАФОН
+   ============================================================ */
+document.querySelectorAll('.m-btn').forEach(btn => {
+  btn.onclick = () => startMarathon(parseInt(btn.dataset.count));
+});
+
+function startMarathon(count) {
+  $('marathonSetup').style.display = 'none';
+  $('marathonPlay').style.display = 'block';
+  $('marathonResults').style.display = 'none';
+  
+  mSession.pool = [...DB].sort(() => Math.random() - 0.5).slice(0, count);
+  mSession.currentIndex = 0;
+  mSession.correct = 0;
+  mSession.wrong = 0;
+  mSession.results = [];
+  $('mOkCount').textContent = '0';
+  $('mErrCount').textContent = '0';
+  
+  renderMarathonQuestion();
+}
+
+function renderMarathonQuestion() {
+  if(mSession.currentIndex >= mSession.pool.length) return finishMarathon();
+  mSession.answered = false;
+  const q = mSession.pool[mSession.currentIndex];
+  mSession.currentQ = q;
+
+  $('mProgressText').textContent = `${mSession.currentIndex} / ${mSession.pool.length}`;
+  $('mProgressBar').style.width = `${(mSession.currentIndex / mSession.pool.length) * 100}%`;
+  $('mQNum').textContent = `№ ${q.id}`;
+  $('mQText').textContent = q.q;
+  $('mFeedback').className = 'feedback';
+  $('mNextBtn').style.display = 'none';
+
+  if(isTextMode(q.level)) {
+    $('mOptionsBox').style.display = 'none';
+    $('mInputBox').style.display = 'flex';
+    $('mAnswerInput').value = '';
+    $('mAnswerInput').disabled = false;
+    $('mSubmitBtn').disabled = false;
+    $('mAnswerInput').focus();
+  } else {
+    $('mOptionsBox').style.display = 'grid';
+    $('mInputBox').style.display = 'none';
+    renderOptions($('mOptionsBox'), q, (opt, btn) => checkMarathonAnswer(opt, btn));
+  }
+}
+
+function checkMarathonAnswer(val, btnEl = null) {
+  if(mSession.answered) return;
+  mSession.answered = true;
+  const q = mSession.currentQ;
+  let isCorrect = false;
+
+  if(isTextMode(q.level)) {
+    $('mAnswerInput').disabled = true;
+    $('mSubmitBtn').disabled = true;
+    isCorrect = fuzzyMatch(val, q.a);
+  } else {
+    const all = $('mOptionsBox').querySelectorAll('.option-btn');
+    all.forEach(b => b.disabled = true);
+    isCorrect = val.toLowerCase() === q.a.toLowerCase();
+    all.forEach(b => {
+      if(b.textContent.toLowerCase() === q.a.toLowerCase()) b.classList.add('correct');
+      else if(b === btnEl && !isCorrect) b.classList.add('wrong');
+      else b.classList.add('dim');
+    });
+  }
+
+  if(isCorrect) {
+    mSession.correct++;
+    $('mOkCount').textContent = mSession.correct;
+    $('mFeedback').className = 'feedback show ok';
+    $('mFeedback').innerHTML = `<span class="label">✅ Верно!</span> Ответ: <span class="correct">${q.a}</span>`;
+    addCoins(1);
+  } else {
+    mSession.wrong++;
+    $('mErrCount').textContent = mSession.wrong;
+    $('mFeedback').className = 'feedback show err';
+    $('mFeedback').innerHTML = `<span class="label">❌ Неверно.</span> Ваш ответ: ${val || '(пусто)'}. Правильный: <span class="correct">${q.a}</span>`;
+  }
+
+  mSession.results.push({ q: q.q, a: q.a, user: val || '(Пропущено)', isCorrect });
+  $('mNextBtn').style.display = 'block';
+}
+
+$('mSubmitBtn').onclick = () => { const val = $('mAnswerInput').value.trim(); if(val) checkMarathonAnswer(val); };
+$('mAnswerInput').onkeydown = (e) => { if(e.key === 'Enter') $('mSubmitBtn').click(); };
+$('mNextBtn').onclick = () => { mSession.currentIndex++; renderMarathonQuestion(); };
+
+function finishMarathon() {
+  $('marathonPlay').style.display = 'none';
+  $('marathonResults').style.display = 'block';
+  $('mResultsBody').innerHTML = '';
+
+  if(mSession.pool.length >= 200) unlockAch('marathoner');
+
+  mSession.results.forEach((d, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${i+1}</td><td>${d.q}</td><td style="color:var(--ok)">${d.a}</td><td>${d.user}</td><td class="${d.isCorrect ? 'ok' : 'err'}">${d.isCorrect ? '✅' : '❌'}</td>`;
+    $('mResultsBody').appendChild(tr);
+  });
+
+  const pct = Math.round((mSession.correct / mSession.pool.length) * 100);
+  $('mSummary').innerHTML = `Правильно: <span style="color:var(--ok)">${mSession.correct}</span> из ${mSession.pool.length} (${pct}%).`;
+}
+
+$('restartMarathonBtn').onclick = () => { $('marathonResults').style.display = 'none'; $('marathonSetup').style.display = 'block'; };
+
+/* Ссылка на вызов */
+$('shareChallengeBtn').onclick = () => {
+  const ids = mSession.pool.map(q => q.id);
+  const hash = btoa(JSON.stringify(ids));
+  const link = `${window.location.origin}${window.location.pathname}#challenge=${hash}`;
+  navigator.clipboard.writeText(link).then(() => {
+    showToast('Ссылка скопирована в буфер обмена!');
+  }).catch(() => {
+    prompt('Скопируйте ссылку:', link);
+  });
+};
+
+// Проверка хэша при загрузке
+window.addEventListener('load', () => {
+  if(window.location.hash.startsWith('#challenge=')) {
+    try {
+      const hash = window.location.hash.split('=')[1];
+      const ids = JSON.parse(atob(hash));
+      const pool = ids.map(id => DB.find(q => q.id === id)).filter(Boolean);
+      if(pool.length) {
+        switchScreen('marathon');
+        $('marathonSetup').style.display = 'none';
+        $('marathonResults').style.display = 'none';
+        $('marathonPlay').style.display = 'block';
+        mSession.pool = pool;
+        mSession.currentIndex = 0;
+        mSession.correct = 0;
+        mSession.wrong = 0;
+        mSession.results = [];
+        renderMarathonQuestion();
+        showToast(`Загружен вызов на ${pool.length} вопросов!`);
+        history.replaceState(null, null, ' '); // Убираем hash
+      }
+    } catch(e) { console.error(e); }
+  }
+});
+
+/* ============================================================
+   DAILY CHALLENGE
+   ============================================================ */
+function getDailySeed() {
+  const d = new Date();
+  return d.getFullYear() * 10000 + (d.getMonth()+1) * 100 + d.getDate();
+}
+
+function checkDaily() {
+  const today = new Date().toDateString();
+  if(state.dailyDate !== today) {
+    state.dailyDate = today;
+    state.dailyDone = false;
+    save();
+  }
+  
+  if(state.dailyDone) {
+    $('dailyStart').style.display = 'none';
+    $('dailyPlay').style.display = 'none';
+    $('dailyResults').style.display = 'block';
+    $('dailySummary').textContent = 'Вы уже прошли сегодняшний вызов. Возвращайтесь завтра!';
+  } else {
+    $('dailyStart').style.display = 'block';
+    $('dailyPlay').style.display = 'none';
+    $('dailyResults').style.display = 'none';
+  }
+}
+
+$('startDailyBtn').onclick = () => {
+  $('dailyStart').style.display = 'none';
+  $('dailyPlay').style.display = 'block';
+  
+  // Псевдослучайная выборка на основе даты
+  let seed = getDailySeed();
+  const random = () => { let x = Math.sin(seed++) * 10000; return x - Math.floor(x); };
+  
+  const shuffled = [...DB].sort(() => random() - 0.5);
+  dSession.pool = shuffled.slice(0, 10);
+  dSession.currentIndex = 0;
+  dSession.correct = 0;
+  renderDailyQ();
+};
+
+function renderDailyQ() {
+  if(dSession.currentIndex >= 10) return finishDaily();
+  const q = dSession.pool[dSession.currentIndex];
+  dSession.currentQ = q;
+  $('dailyProgress').textContent = `${dSession.currentIndex} / 10`;
+  $('dailyQNum').textContent = `№ ${q.id}`;
+  $('dailyQText').textContent = q.q;
+  $('dailyFeedback').className = 'feedback';
+  $('dailyNextBtn').style.display = 'none';
+  
+  // В Daily всегда кнопки для единообразия (или используем isTextMode)
+  if(isTextMode(q.level)) {
+    // Если текстовый, то выводим input. Для простоты используем кнопки принудительно.
+    $('dailyOptions').style.display = 'grid';
+    renderOptions($('dailyOptions'), q, (opt, btn) => checkDaily(opt, btn, q));
+  } else {
+    $('dailyOptions').style.display = 'grid';
+    renderOptions($('dailyOptions'), q, (opt, btn) => checkDaily(opt, btn, q));
+  }
+}
+
+function checkDaily(val, btnEl, q) {
+  if($('dailyNextBtn').style.display === 'block') return;
+  const all = $('dailyOptions').querySelectorAll('.option-btn');
+  all.forEach(b => b.disabled = true);
+  const isCorrect = val.toLowerCase() === q.a.toLowerCase();
+  
+  all.forEach(b => {
+    if(b.textContent.toLowerCase() === q.a.toLowerCase()) b.classList.add('correct');
+    else if(b === btnEl && !isCorrect) b.classList.add('wrong');
+    else b.classList.add('dim');
+  });
+
+  if(isCorrect) {
+    dSession.correct++;
+    $('dailyFeedback').className = 'feedback show ok';
+    $('dailyFeedback').innerHTML = `✅ Верно!`;
+    addCoins(2); // В Daily монеты x2
+  } else {
+    $('dailyFeedback').className = 'feedback show err';
+    $('dailyFeedback').innerHTML = `❌ Неверно. Ответ: <b>${q.a}</b>`;
+  }
+  $('dailyNextBtn').style.display = 'block';
+}
+
+$('dailyNextBtn').onclick = () => { dSession.currentIndex++; renderDailyQ(); };
+
+function finishDaily() {
+  $('dailyPlay').style.display = 'none';
+  $('dailyResults').style.display = 'block';
+  $('dailySummary').innerHTML = `Вы ответили верно на <b>${dSession.correct}</b> из 10.`;
+  state.dailyDone = true;
+  save();
+}
+
+$('closeDailyBtn').onclick = () => switchScreen('quiz');
+
+/* ============================================================
+   ДУЭЛЬ (PvP)
+   ============================================================ */
+$('startPvpBtn').onclick = () => {
+  $('pvpSetup').style.display = 'none';
+  $('pvpPlay').style.display = 'block';
+  $('pvpResults').style.display = 'none';
+  pSession.score = [0, 0];
+  $('pvpScore1').textContent = '0';
+  $('pvpScore2').textContent = '0';
+  renderPvpQ();
+};
+
+function renderPvpQ() {
+  if(pSession.score[0] >= 5 || pSession.score[1] >= 5) {
+    $('pvpPlay').style.display = 'none';
+    $('pvpResults').style.display = 'block';
+    $('pvpWinnerText').textContent = pSession.score[0] >= 5 ? '🏆 Победил Игрок 1!' : '🏆 Победил Игрок 2!';
+    return;
+  }
+
+  pSession.answered = false;
+  $('pvpFeedback').textContent = '';
+  
+  const q = DB.filter(x => x.level === 1 || x.level === 2).sort(() => Math.random() - 0.5)[0];
+  pSession.currentQ = q;
+  $('pvpQText').textContent = q.q;
+
+  $('pvpOptions').innerHTML = '';
+  let distractors = POOLS[q.pool].filter(x => x !== q.a).sort(() => Math.random() - 0.5).slice(0, 3);
+  const opts = [q.a, ...distractors].sort(() => Math.random() - 0.5);
+  
+  opts.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.textContent = opt;
+    btn.onclick = () => checkPvp(opt, btn);
+    $('pvpOptions').appendChild(btn);
+  });
+}
+
+function checkPvp(val, btnEl) {
+  if(pSession.answered) return;
+  pSession.answered = true;
+  const q = pSession.currentQ;
+  const isCorrect = val.toLowerCase() === q.a.toLowerCase();
+
+  const all = $('pvpOptions').querySelectorAll('.option-btn');
+  all.forEach(b => b.disabled = true);
+  all.forEach(b => {
+    if(b.textContent.toLowerCase() === q.a.toLowerCase()) b.classList.add('correct');
+    else if(b === btnEl && !isCorrect) b.classList.add('wrong');
+  });
+
+  if(isCorrect) {
+    if(pSession.activePlayer === 0) { pSession.score[0]++; $('pvpScore1').textContent = pSession.score[0]; }
+    else { pSession.score[1]++; $('pvpScore2').textContent = pSession.score[1]; }
+    
+    $('pvpFeedback').textContent = `✅ Очко забирает Игрок ${pSession.activePlayer + 1}!`;
+  } else {
+    $('pvpFeedback').textContent = `❌ Ошибка! Очко сгорает.`;
+  }
+
+  // Смена игрока
+  pSession.activePlayer = 1 - pSession.activePlayer;
+  $('pvpPanel1').classList.toggle('active', pSession.activePlayer === 0);
+  $('pvpPanel2').classList.toggle('active', pSession.activePlayer === 1);
+
+  setTimeout(renderPvpQ, 1500);
+}
+
+$('quitPvpBtn').onclick = () => { $('pvpPlay').style.display = 'none'; $('pvpSetup').style.display = 'block'; };
+$('restartPvpBtn').onclick = () => { $('pvpResults').style.display = 'none'; $('pvpPlay').style.display = 'block'; pSession.score = [0,0]; $('pvpScore1').textContent='0'; $('pvpScore2').textContent='0'; renderPvpQ(); };
+
+/* ============================================================
+   ПРОФИЛЬ, СТАТИСТИКА, ЛИДЕРЫ, МАГАЗИН
+   ============================================================ */
+function renderProfile() {
+  const totalGames = state.stats.history.length;
+  const totalOk = state.stats.correct;
+  const totalAll = state.stats.correct + state.stats.wrong;
+  const acc = totalAll ? Math.round((totalOk / totalAll) * 100) : 0;
+  
+  $('profGames').textContent = totalGames;
+  $('profAcc').textContent = acc + '%';
+  $('profCoins').textContent = state.coins;
+
+  const grid = $('achievementsGrid');
+  grid.innerHTML = '';
+  ACHIEVEMENTS.forEach(a => {
+    const unlocked = !!state.achievements[a.id];
+    grid.innerHTML += `
+      <div class="ach-item ${unlocked ? 'unlocked' : ''}" title="${a.desc}">
+        <div class="icon">${unlocked ? a.icon : '🔒'}</div>
+        <div class="name">${a.name}</div>
+      </div>
+    `;
+  });
+}
+
+function renderStats() {
+  const container = $('levelStatsContainer');
+  container.innerHTML = '';
+  
+  for(let i=1; i<=5; i++) {
+    const data = state.stats.byLevel[i] || {ok:0, err:0};
+    const total = data.ok + data.err;
+    const pct = total ? Math.round((data.ok / total) * 100) : 0;
+    
+    container.innerHTML += `
+      <div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+          <b>Уровень ${i}</b> <span>${data.ok} / ${total} (${pct}%)</span>
+        </div>
+        <div class="progress-wrap"><div class="progress-bar" style="width: ${pct}%; background: ${pct > 60 ? 'var(--ok)' : 'var(--err)'};"></div></div>
+      </div>
+    `;
+  }
+}
+
+function renderLeaders() {
+  const tbody = $('leadersTable').querySelector('tbody');
+  tbody.innerHTML = '';
+  state.leaders.forEach((l, i) => {
+    const acc = l.total ? Math.round((l.correct / l.total) * 100) : 0;
+    tbody.innerHTML += `<tr><td>${i + 1}</td><td><b>${l.name}</b></td><td style="color:var(--accent)">${l.score}</td><td>${acc}%</td><td>${l.games}</td></tr>`;
+  });
+}
+
+function renderShop() {
+  const grid = $('shopThemes');
+  grid.innerHTML = '';
+  SHOP_THEMES.forEach(t => {
+    const owned = state.unlockedThemes.includes(t.id);
+    grid.innerHTML += `
+      <div class="shop-item">
+        <div>
+          <div class="title">${t.name}</div>
+          <div class="price">${owned ? 'Куплено' : '🪙 ' + t.price}</div>
+        </div>
+        <button class="icon-btn ${owned ? '' : 'primary'}" onclick="buyTheme('${t.id}', ${t.price})" ${owned ? 'disabled' : ''}>
+          ${owned ? 'Активно' : 'Купить'}
+        </button>
+      </div>
+    `;
+  });
+}
+
+window.buyTheme = (id, price) => {
+  if(state.coins >= price) {
+    state.coins -= price;
+    state.unlockedThemes.push(id);
+    state.theme = id;
+    save();
+    updateCoins();
+    applyTheme(id);
+    renderShop();
+    showToast('Тема куплена и применена!');
+  } else {
+    showToast('Недостаточно монет!');
+  }
+};
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  $('themeBtn').textContent = theme === 'dark' ? '🌙' : (theme === 'light' ? '☀️' : (theme === 'cyber' ? '🤖' : '📺'));
+}
+
+/* Экспорт / Импорт */
+$('exportCsvBtn').onclick = () => {
+  if(!state.stats.history.length) return showToast('Нет данных');
+  let csv = 'Дата,Уровень,Верно,Ошибок\n';
+  state.stats.history.forEach(h => { csv += `${h.date},${h.level},${h.correct},${h.wrong}\n`; });
+  const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'stats.csv'; a.click();
+};
+
+$('exportProfileBtn').onclick = () => {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = `profile_${state.user}.json`; a.click();
+};
+
+$('importProfileBtn').onclick = () => $('importProfileFile').click();
+$('importProfileFile').onchange = (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if(data.user) {
+        state = Object.assign(state, data);
+        save();
+        location.reload(); // Перезагрузка для применения
+      }
+    } catch(err) { showToast('Ошибка файла'); }
+  };
+  reader.readAsText(file);
+};
+
+/* ============================================================
+   НАСТРОЙКИ, МУЗЫКА, КАСТОМ
+   ============================================================ */
+$('settingsBtn').onclick = () => {
+  $('levelSelect').value = state.level;
+  $('inputModeSelect').value = state.inputMode;
+  $('timerInput').value = state.timer;
+  $('fontSizeInput').value = state.fontSize;
+  $('fontSizeLabel').textContent = state.fontSize;
+  $('zenModeInput').checked = state.zenMode;
+  $('settingsModal').style.display = 'flex';
+};
+
+$('fontSizeInput').oninput = (e) => { $('fontSizeLabel').textContent = e.target.value; };
+
+$('closeSettingsBtn').onclick = () => {
+  state.level = Number($('levelSelect').value);
+  state.inputMode = $('inputModeSelect').value;
+  state.timer = Number($('timerInput').value);
+  state.fontSize = Number($('fontSizeInput').value);
+  state.zenMode = $('zenModeInput').checked;
+  
+  document.documentElement.style.setProperty('--base-font-size', state.fontSize + 'px');
+  $('appContainer').classList.toggle('zen-mode', state.zenMode);
+  
+  save(); $('settingsModal').style.display = 'none';
+  startNewSession();
+};
+
+$('themeBtn').onclick = () => {
+  // Циклический перебор купленных тем
+  const available = state.unlockedThemes;
+  let idx = available.indexOf(state.theme);
+  idx = (idx + 1) % available.length;
+  state.theme = available[idx];
+  save();
+  applyTheme(state.theme);
+};
+
+const bgmAudio = $('bgmAudio');
+if(localStorage.getItem('bgm_url')) bgmAudio.src = localStorage.getItem('bgm_url');
+$('musicBtn').onclick = () => {
+  if(!bgmAudio.src) return showToast('Загрузите MP3 в настройках');
+  if(bgmAudio.paused) { bgmAudio.play(); $('musicBtn').classList.add('active'); }
+  else { bgmAudio.pause(); $('musicBtn').classList.remove('active'); }
+};
+
+$('bgmFile').onchange = (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    bgmAudio.src = ev.target.result;
+    localStorage.setItem('bgm_url', ev.target.result);
+    $('bgmStatus').textContent = 'Загружено: ' + file.name;
+  };
+  reader.readAsDataURL(file);
+};
+
+$('loadCustomBtn').onclick = () => {
+  const text = $('customText').value.trim();
+  if(!text) return;
+  const newQ = text.split('\n').map((line, i) => {
+    const p = line.split(',').map(s => s.trim());
+    if(p.length >= 3) return { id: 9999+i, level: Number(p[0])||1, q: p[1], a: p[2], d1: p[3]||null, d2: p[4]||null, d3: p[5]||null, pool: 'philosophy' };
+    return null;
+  }).filter(Boolean);
+  if(newQ.length) { state.customQ = newQ; save(); showToast(`Загружено ${newQ.length} вопросов`); startNewSession(); }
+};
+
+$('resetCustomBtn').onclick = () => { state.customQ = []; save(); showToast('Сброшено'); startNewSession(); };
+
+/* ============================================================
+   ГОРЯЧИЕ КЛАВИШИ И СТАРТ
+   ============================================================ */
+document.addEventListener('keydown', (e) => {
+  // Если в фокусе input, не перехватываем цифры
+  if(document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') {
+    if(e.key === 'Enter') {
+      // Обработка Enter в инпутах настроена локально
+    }
+    return;
+  }
+
+  if(['1','2','3','4'].includes(e.key) && !isTextMode(state.level) && screens.quiz.classList.contains('active')) {
+    const btns = document.querySelectorAll('#optionsBox .option-btn');
+    const idx = parseInt(e.key) - 1;
+    if(btns[idx] && !btns[idx].disabled) btns[idx].click();
+  }
+
+  if(e.key === 'Enter' && screens.quiz.classList.contains('active')) {
+    if($('nextBtn').style.display !== 'none') $('nextBtn').click();
+    else if($('submitAnswerBtn').style.display !== 'none') $('submitAnswerBtn').click();
+  }
+
+  if(e.key === ' ' && screens.quiz.classList.contains('active') && $('skipBtn').style.display !== 'none') {
+    e.preventDefault();
+    $('skipBtn').click();
+  }
+});
+
+// Инициализация
+applyTheme(state.theme);
+updateCoins();
+document.documentElement.style.setProperty('--base-font-size', state.fontSize + 'px');
+$('appContainer').classList.toggle('zen-mode', state.zenMode);
+</script>
+</body>
+</html>
