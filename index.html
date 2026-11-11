@@ -1520,11 +1520,19 @@ $('appContainer').classList.toggle('zen-mode', state.zenMode);
   window.saveScoreToCloud = async (name, score) => {
     if (!name || !score) return;
     try {
-      await addDoc(collection(db, "leaderboard"), {
-        name: name,
-        score: score,
-        date: new Date()
-      });
+      // Ищем, есть ли уже такой игрок
+      const q = query(collection(db, "leaderboard"), where("name", "==", name));
+      const snapshot = await getDocs(q);
+      
+      if (!snapshot.empty) {
+        // Если есть — обновляем его очки
+        const docId = snapshot.docs[0].id;
+        await updateDoc(doc(db, "leaderboard", docId), { score: score, date: new Date() });
+      } else {
+        // Если нет — создаем нового
+        await addDoc(collection(db, "leaderboard"), { name: name, score: score, date: new Date() });
+      }
+      console.log("Очки сохранены в облако!");
     } catch (e) {
       console.error("Ошибка сохранения в облако:", e);
     }
