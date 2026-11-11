@@ -1308,6 +1308,7 @@ function renderStats() {
 }
 
 function renderLeaders() {
+  if (window.loadCloudLeaderboard) { window.loadCloudLeaderboard(); return; }
   const tbody = $('leadersTable').querySelector('tbody');
   tbody.innerHTML = '';
   state.leaders.forEach((l, i) => {
@@ -1495,6 +1496,10 @@ applyTheme(state.theme);
 updateCoins();
 document.documentElement.style.setProperty('--base-font-size', state.fontSize + 'px');
 $('appContainer').classList.toggle('zen-mode', state.zenMode);
+    // Отправляем нашего Понедельника в облако при загрузке, если его там нет
+  if (state.user === 'Понедельник') {
+      if (window.saveScoreToCloud) window.saveScoreToCloud('Понедельник', 500000);
+  }
 </script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
