@@ -1496,5 +1496,69 @@ updateCoins();
 document.documentElement.style.setProperty('--base-font-size', state.fontSize + 'px');
 $('appContainer').classList.toggle('zen-mode', state.zenMode);
 </script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBuQXwsndRGL4IaoZ79z62SQ4ph0M-s2-o",
+    authDomain: "shizoopros.firebaseapp.com",
+    projectId: "shizoopros",
+    storageBucket: "shizoopros.firebasestorage.app",
+    messagingSenderId: "699573576533",
+    appId: "1:699573576533:web:23e1bf05a9bf2adfc405dc"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  window.saveScoreToCloud = async (name, score) => {
+    if (!name || !score) return;
+    try {
+      await addDoc(collection(db, "leaderboard"), {
+        name: name,
+        score: score,
+        date: new Date()
+      });
+    } catch (e) {
+      console.error("Ошибка сохранения в облако:", e);
+    }
+  };
+
+  window.loadCloudLeaderboard = async () => {
+    const listEl = document.getElementById('leadersTable').querySelector('tbody');
+    if (!listEl) return;
+    listEl.innerHTML = '<tr><td colspan="5" style="text-align:center;">Загрузка рейтинга...</td></tr>';
+
+    try {
+      const q = query(collection(db, "leaderboard"), orderBy("score", "desc"), limit(20));
+      const snapshot = await getDocs(q);
+      
+      listEl.innerHTML = '';
+      if (snapshot.empty) {
+        listEl.innerHTML = '<tr><td colspan="5" style="text-align:center;">Пока нет результатов.</td></tr>';
+        return;
+      }
+
+      let rank = 1;
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${rank}</td>
+          <td><b>${data.name}</b></td>
+          <td style="color:var(--accent)">${data.score}</td>
+          <td>-</td>
+          <td>-</td>
+        `;
+        listEl.appendChild(tr);
+        rank++;
+      });
+    } catch (e) {
+      console.error("Ошибка загрузки рейтинга:", e);
+      listEl.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--err);">Ошибка загрузки.</td></tr>';
+    }
+  };
+</script>
 </body>
 </html>
